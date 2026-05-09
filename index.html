@@ -223,6 +223,9 @@
     .tag-input-row input { flex: 1; background: #3a3a3a; border: 1px solid #444; color: var(--text); padding: 6px 10px; border-radius: 16px; font-size: 13px; }
     .tag-input-row input:focus { outline: none; border-color: var(--secondary); }
     .tag-input-row button { background: var(--primary); color: var(--text); border: none; padding: 6px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; }
+    .tag-icon-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .tag-icon-btn { background: #3a3a3a; border: 1px solid #444; border-radius: 8px; padding: 4px 8px; font-size: 16px; cursor: pointer; }
+    .tag-icon-btn.selected { border-color: var(--secondary); background: var(--secondary); }
     .modal-btns { display: flex; gap: 12px; margin-top: 20px; }
     .modal-btns button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; }
     .modal-btns .cancel { background: #3a3a3a; color: var(--text); }
@@ -284,8 +287,26 @@
         <div class="tag-option" data-tag="newbie" onclick="toggleTag(this)">🌱 新手</div>
       </div>
       <div class="tag-input-row">
-        <input type="text" id="custom-tag-input" placeholder="输入自定义标签..." maxlength="8">
+        <input type="text" id="custom-tag-input" placeholder="输入标签名..." maxlength="8">
         <button onclick="addCustomTag()">添加</button>
+      </div>
+      <div class="tag-icon-picker" id="tag-icon-picker">
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🎯</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🔥</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">💎</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">⚡</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">👑</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🎲</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🌙</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🍀</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">😈</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🤡</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🐯</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🦁</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🐺</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🦊</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🐼</span>
+        <span class="tag-icon-btn" onclick="selectTagIcon(this)">🐨</span>
       </div>
     </div>
     <div class="modal-btns">
@@ -335,7 +356,14 @@ function renderPlayers() {
       <div class="player-info">
         <div class="player-name">${p.name}</div>
         <div class="player-tags">
-          ${p.tags.map(t => `<span class="tag">${TAG_MAP[t] || t}</span>`).join('')}
+          ${p.tags.map(t => {
+            if (t.startsWith('custom_')) {
+              const name = t.replace('custom_', '');
+              const ct = getCustomTags().find(c => c.name === name);
+              return `<span class="tag">${ct ? (ct.icon || '🏷️') + ct.name : '🏷️' + name}</span>`;
+            }
+            return `<span class="tag">${TAG_MAP[t] || t}</span>`;
+          }).join('')}
         </div>
       </div>
       <button class="player-del" onclick="delPlayer('${p.id}')">×</button>
@@ -348,6 +376,8 @@ function openAddPlayer() {
   document.getElementById('new-player-name').value = '';
   document.querySelectorAll('.tag-option').forEach(e => e.classList.remove('selected'));
   document.getElementById('custom-tag-input').value = '';
+  selectedTagIcon = '🏷️';
+  document.querySelectorAll('.tag-icon-btn').forEach(b => b.classList.remove('selected'));
   renderCustomTagsInModal();
 }
 
@@ -360,11 +390,19 @@ function renderCustomTagsInModal() {
   customTags.forEach(tag => {
     const el = document.createElement('div');
     el.className = 'tag-option custom-tag';
-    el.dataset.tag = 'custom_' + tag;
-    el.textContent = tag;
+    el.dataset.tag = 'custom_' + tag.name;
+    el.textContent = (tag.icon || '🏷️') + tag.name;
     el.onclick = () => toggleTag(el);
     area.appendChild(el);
   });
+}
+
+let selectedTagIcon = '🏷️';
+
+function selectTagIcon(el) {
+  document.querySelectorAll('.tag-icon-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTagIcon = el.textContent;
 }
 
 function addCustomTag() {
@@ -373,8 +411,9 @@ function addCustomTag() {
   if (!val) return;
   if (val.length > 8) { alert('标签最多8个字'); return; }
   const tags = getCustomTags();
-  if (tags.includes(val)) { alert('标签已存在'); return; }
-  tags.push(val);
+  const customTags = getCustomTags();
+  if (customTags.find(t => t.name === val)) { alert('标签已存在'); return; }
+  tags.push({ name: val, icon: selectedTagIcon });
   saveCustomTags(tags);
   input.value = '';
   renderCustomTagsInModal();
@@ -423,7 +462,14 @@ function renderRecordTab() {
       <input type="checkbox" id="check-${p.id}">
       <div>
         <div class="pname">${p.name}</div>
-        <div class="ptags">${p.tags.map(t => TAG_MAP[t] || t).join(' ')}</div>
+        <div class="ptags">${p.tags.map(t => {
+          if (t.startsWith('custom_')) {
+            const name = t.replace('custom_', '');
+            const ct = getCustomTags().find(c => c.name === name);
+            return ct ? (ct.icon || '🏷️') + ct.name : '🏷️' + name;
+          }
+          return TAG_MAP[t] || t;
+        }).join(' ')}</div>
       </div>
     </div>
   `).join('');
