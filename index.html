@@ -329,7 +329,16 @@ function getPlayers() { return JSON.parse(localStorage.getItem(LS_PLAYERS) || '[
 function savePlayers(arr) { localStorage.setItem(LS_PLAYERS, JSON.stringify(arr)); }
 function getRecords() { return JSON.parse(localStorage.getItem(LS_RECORDS) || '[]'); }
 function saveRecords(arr) { localStorage.setItem(LS_RECORDS, JSON.stringify(arr)); }
-function getCustomTags() { return JSON.parse(localStorage.getItem(LS_CUSTOM_TAGS) || '[]'); }
+function getCustomTags() {
+  const raw = JSON.parse(localStorage.getItem(LS_CUSTOM_TAGS) || '[]');
+  // Migrate old string-format tags to object format
+  if (raw.length > 0 && typeof raw[0] === 'string') {
+    const migrated = raw.map(name => ({ name, icon: '🏷️' }));
+    saveCustomTags(migrated);
+    return migrated;
+  }
+  return raw;
+}
 function saveCustomTags(arr) { localStorage.setItem(LS_CUSTOM_TAGS, JSON.stringify(arr)); }
 
 // ============ Tab ============
