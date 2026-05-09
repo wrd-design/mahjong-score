@@ -217,6 +217,12 @@
       color: var(--text-dim);
     }
     .tag-option.selected { border-color: var(--secondary); background: var(--secondary); color: #1a1a1a; }
+    .tag-option.custom-tag { background: var(--primary); border-color: var(--primary); color: var(--text); }
+    .tag-option.custom-tag.selected { background: var(--secondary); border-color: var(--secondary); color: #1a1a1a; }
+    .tag-input-row { display: flex; gap: 8px; margin-top: 8px; }
+    .tag-input-row input { flex: 1; background: #3a3a3a; border: 1px solid #444; color: var(--text); padding: 6px 10px; border-radius: 16px; font-size: 13px; }
+    .tag-input-row input:focus { outline: none; border-color: var(--secondary); }
+    .tag-input-row button { background: var(--primary); color: var(--text); border: none; padding: 6px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; }
     .modal-btns { display: flex; gap: 12px; margin-top: 20px; }
     .modal-btns button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; }
     .modal-btns .cancel { background: #3a3a3a; color: var(--text); }
@@ -271,11 +277,15 @@
     </div>
     <div class="form-group">
       <label>标签（可多选）</label>
-      <div class="tag-select">
+      <div class="tag-select" id="tag-select-area">
         <div class="tag-option" data-tag="lucky" onclick="toggleTag(this)">🌟 运气好</div>
         <div class="tag-option" data-tag="skillful" onclick="toggleTag(this)">🧠 技术好</div>
         <div class="tag-option" data-tag="counter" onclick="toggleTag(this)">📊 会算牌</div>
         <div class="tag-option" data-tag="newbie" onclick="toggleTag(this)">🌱 新手</div>
+      </div>
+      <div class="tag-input-row">
+        <input type="text" id="custom-tag-input" placeholder="输入自定义标签..." maxlength="8">
+        <button onclick="addCustomTag()">添加</button>
       </div>
     </div>
     <div class="modal-btns">
@@ -289,13 +299,17 @@
 // ============ Data ============
 const LS_PLAYERS = 'mahjong_players';
 const LS_RECORDS = 'mahjong_records';
-const TAG_MAP = { lucky: '🌟运气好', skillful: '🧠技术好', counter: '📊会算牌', newbie: '🌱新手' };
+const LS_CUSTOM_TAGS = 'mahjong_custom_tags';
+const PRESET_TAGS = { lucky: '🌟运气好', skillful: '🧠技术好', counter: '📊会算牌', newbie: '🌱新手' };
+const TAG_MAP = { ...PRESET_TAGS };
 
 function uuid() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 function getPlayers() { return JSON.parse(localStorage.getItem(LS_PLAYERS) || '[]'); }
 function savePlayers(arr) { localStorage.setItem(LS_PLAYERS, JSON.stringify(arr)); }
 function getRecords() { return JSON.parse(localStorage.getItem(LS_RECORDS) || '[]'); }
 function saveRecords(arr) { localStorage.setItem(LS_RECORDS, JSON.stringify(arr)); }
+function getCustomTags() { return JSON.parse(localStorage.getItem(LS_CUSTOM_TAGS) || '[]'); }
+function saveCustomTags(arr) { localStorage.setItem(LS_CUSTOM_TAGS, JSON.stringify(arr)); }
 
 // ============ Tab ============
 function switchTab(name) {
@@ -333,6 +347,37 @@ function openAddPlayer() {
   document.getElementById('addPlayerModal').classList.add('active');
   document.getElementById('new-player-name').value = '';
   document.querySelectorAll('.tag-option').forEach(e => e.classList.remove('selected'));
+  document.getElementById('custom-tag-input').value = '';
+  renderCustomTagsInModal();
+}
+
+function renderCustomTagsInModal() {
+  const area = document.getElementById('tag-select-area');
+  // Remove old custom tags
+  area.querySelectorAll('.custom-tag').forEach(e => e.remove());
+  // Append custom tags before the input row
+  const customTags = getCustomTags();
+  customTags.forEach(tag => {
+    const el = document.createElement('div');
+    el.className = 'tag-option custom-tag';
+    el.dataset.tag = 'custom_' + tag;
+    el.textContent = tag;
+    el.onclick = () => toggleTag(el);
+    area.appendChild(el);
+  });
+}
+
+function addCustomTag() {
+  const input = document.getElementById('custom-tag-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (val.length > 8) { alert('标签最多8个字'); return; }
+  const tags = getCustomTags();
+  if (tags.includes(val)) { alert('标签已存在'); return; }
+  tags.push(val);
+  saveCustomTags(tags);
+  input.value = '';
+  renderCustomTagsInModal();
 }
 
 function closeAddPlayer() {
